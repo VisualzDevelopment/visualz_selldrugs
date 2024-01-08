@@ -38,14 +38,14 @@ lib.callback.register("visualz_selldrugs:sellDrugs", function(source, networkId,
           TriggerClientEvent("visualz_selldrugs:callPoliceAnimation", source, networkId)
           CallPolice(xPlayer, zone, drug)
         else
-          TriggerClientEvent("visualz_selldrugs:animation", source, networkId, "Reject")
+          TriggerClientEvent("visualz_selldrugs:animation", source, networkId, "Rejected")
         end
       end
       return { type = "error", description = Config.Notify["RejectNotify"](drug) }
     end
   end
 
-  TriggerClientEvent("visualz_selldrugs:animation", source, networkId, "Accept")
+  TriggerClientEvent("visualz_selldrugs:animation", source, networkId, "Accepted")
   Wait(Config.SellDuration + 1000)
 
   if CheckDistance(entity, xPlayer) > 3.0 then

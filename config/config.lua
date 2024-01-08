@@ -19,7 +19,7 @@ Config.OpenStofMenu = ''         -- The keybind to open the stof menu (Leave bla
 Config.AlertBlips = true         -- Show area blips on map when police is alerted
 
 Config.Animation = {
-  ["Accept"] = {
+  ["Accepted"] = {
     enabled = true,
     dict = "mp_common",
     clip = "givetake1_a",
@@ -49,7 +49,7 @@ Config.Animation = {
       secondRot = vector3(-0.34276769547101, -45.256817898793, 61.42852180304),
     },
   },
-  ["Reject"] = {
+  ["Rejected"] = {
     enabled = false,
     dict = "mp_common",
     clip = "givetake1_a",
