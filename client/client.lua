@@ -116,7 +116,16 @@ function SellToPed(ped)
 
   local networkId = NetworkGetNetworkIdFromEntity(ped)
   local sellResponse = lib.callback.await("visualz_selldrugs:sellDrugs", false, networkId, currentDrug, zone)
-
+  if sellResponse == nil then
+    lib.notify({
+      type = "error",
+      description = "Der skete en fejl, tjek din server konsol for fejlmeddelelser"
+    })
+    SetPedConfigFlag(ped, 128, true)
+    SetPedConfigFlag(ped, 183, true)
+    SetPedFleeAttributes(ped, 15, true)
+    return
+  end
   lib.notify({
     type = sellResponse.type,
     description = sellResponse.description
@@ -132,8 +141,8 @@ function AttachProp(entity, isNpc, type, firstOrSecond)
   local pos = isNpc and config["npc"][firstOrSecond .. "Pos"] or config["player"][firstOrSecond .. "Pos"]
   local rot = isNpc and config["npc"][firstOrSecond .. "Rot"] or config["player"][firstOrSecond .. "Rot"]
 
-  print(pos)
-  print(pos.x, pos.y, pos.z)
+  --print(pos)
+  --print(pos.x, pos.y, pos.z)
 
   DeleteProp(entity)
   object[entity] = CreateObject(GetHashKey(prop), 1, 1, 1, true, true, true)
