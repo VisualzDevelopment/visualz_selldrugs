@@ -1,38 +1,71 @@
 local object = {}
 local closestPed = nil
 local currentDrug = nil
-local textUiLabel =
 
-    RegisterNetEvent("visualz_drugSystem:sellProgress", function(networkId)
-      local entity = NetworkGetEntityFromNetworkId(networkId)
-      lib.requestAnimDict(Config.Animation.Accept.dict)
+RegisterNetEvent("visualz_selldrugs:animation", function(networkId, type)
+  if not NetworkDoesNetworkIdExist(networkId) then
+    return
+  end
 
-      ClearPedTasksImmediately(entity)
-      ClearPedTasksImmediately(cache.ped)
+  local config = Config.Animation[type]
+  if not config.enabled then
+    return
+  end
 
-      TaskTurnPedToFaceEntity(cache.ped, entity, 1000)
-      TaskTurnPedToFaceEntity(entity, cache.ped, 1000)
+  local entity = NetworkGetEntityFromNetworkId(networkId)
+  lib.requestAnimDict(config.dict)
 
-      Wait(1000)
+  ClearPedTasksImmediately(entity)
+  ClearPedTasksImmediately(cache.ped)
 
-      AttachDrugs(cache.ped, false)
-      AttachMoney(entity, true)
+  TaskTurnPedToFaceEntity(cache.ped, entity, 1000)
+  TaskTurnPedToFaceEntity(entity, cache.ped, 1000)
 
-      TaskPlayAnim(cache.ped, Config.Animation.Accept.dict, Config.Animation.Accept.clip, 8.0, -8.0, Config.SellDuration,
-        0, 0, false, false, false)
-      TaskPlayAnim(entity, Config.Animation.Accept.dict, Config.Animation.Accept.clip, 8.0, -8.0, Config.SellDuration, 0,
-        0, false, false, false)
+  Wait(1000)
 
-      Wait(Config.SellDuration / 2)
+  if config["npc"].enabled then
+    AttachProp(entity, true, type, "first")
+    TaskPlayAnim(entity, config.dict, config.clip, 8.0, 8.0, Config.SellDuration / 2, 14, 0, false, false, false)
+  end
 
-      AttachMoney(cache.ped, false)
-      AttachDrugs(entity, true)
+  if config["player"].enabled then
+    AttachProp(cache.ped, false, type, "first")
+    TaskPlayAnim(cache.ped, config.dict, config.clip, 8.0, 8.0, Config.SellDuration / 2, 14, 0, false, false, false)
+  end
 
-      Wait(Config.SellDuration / 2)
+  Wait(Config.SellDuration / 2)
 
-      DeleteProp(cache.ped)
-      DeleteProp(entity)
-    end)
+  if config["npc"].enabled then
+    AttachProp(entity, true, type, "second")
+  end
+
+  if config["player"].enabled then
+    AttachProp(cache.ped, false, type, "second")
+  end
+
+  Wait(Config.SellDuration / 2 + 250)
+
+  DeleteProp(cache.ped)
+  DeleteProp(entity)
+
+  if config["npc"].enabled then
+    ClearPedTasks(entity)
+  end
+
+  if config["player"].enabled then
+    ClearPedTasks(cache.ped)
+  end
+end)
+
+RegisterCommand('propfix', function()
+  for k, v in pairs(GetGamePool('CObject')) do
+    if IsEntityAttachedToEntity(PlayerPedId(), v) then
+      SetEntityAsMissionEntity(v, true, true)
+      DeleteObject(v)
+      DeleteEntity(v)
+    end
+  end
+end)
 
 --#
 --# Util Functions
@@ -46,7 +79,7 @@ AlertPoliceBlips = function(coords)
   lib.notify({
     id = 'visualz_selldrugs:callPolice',
     icon = Config.SellIcon,
-    description = 'En Person prøvede at sælge stoffer i ' .. zone
+    description = Config.Notify["CallPolice"](zone)
   })
 
   SetBlipSprite(Blip, 161)
@@ -76,7 +109,7 @@ function SellToPed(ped)
     currentDrug = nil
     lib.notify({
       type = "error",
-      description = "Du har ikke noget stof at sælge"
+      description = Config.Notify["DontHaveDrug"](currentDrug)
     })
     return
   end
@@ -93,29 +126,18 @@ function SellToPed(ped)
   SetPedFleeAttributes(ped, 15, true)
 end
 
-function AttachDrugs(entity, isNpc)
-  DeleteProp(entity)
-  object[entity] = CreateObject(
-    GetHashKey(isNpc and Config.Animation.Accept.npc.drugProp or Config.Animation.Accept.player.drugProp), 0, 0, 0, true,
-    true, true)
-  local coord = isNpc and Config.Animation.Accept.npc.drugPos or Config.Animation.Accept.player.drugPos
-  local rot = isNpc and Config.Animation.Accept.npc.drugRot or Config.Animation.Accept.player.drugRot
-  AttachEntityToEntity(object[entity], entity,
-    isNpc and Config.Animation.Accept.npc.propIndex or Config.Animation.Accept.player.propIndex, coord.x, coord.y,
-    coord.z, rot.x, rot.y, rot.z, true, true, false, true, 1, true)
-end
+function AttachProp(entity, isNpc, type, firstOrSecond)
+  local config = Config.Animation[type]
+  local prop = isNpc and config["npc"][firstOrSecond .. "Prop"] or config["player"][firstOrSecond .. "Prop"]
+  local pos = isNpc and config["npc"][firstOrSecond .. "Pos"] or config["player"][firstOrSecond .. "Pos"]
+  local rot = isNpc and config["npc"][firstOrSecond .. "Rot"] or config["player"][firstOrSecond .. "Rot"]
 
-function AttachMoney(entity, isNpc)
+  print(pos)
+  print(pos.x, pos.y, pos.z)
+
   DeleteProp(entity)
-  object[entity] = CreateObject(
-    GetHashKey(isNpc and Config.Animation.Accept.npc.moneyProp or Config.Animation.Accept.player.moneyProp), 0, 0, 0,
-    true,
-    true, true)
-  local coord = isNpc and Config.Animation.Accept.npc.moneyPos or Config.Animation.Accept.player.moneyPos
-  local rot = isNpc and Config.Animation.Accept.npc.moneyRot or Config.Animation.Accept.player.moneyRot
-  AttachEntityToEntity(object[entity], entity,
-    isNpc and Config.Animation.Accept.npc.propIndex or Config.Animation.Accept.player.propIndex, coord.x, coord.y,
-    coord.z, rot.x, rot.y, rot.z, true, true, false, true, 1, true)
+  object[entity] = CreateObject(GetHashKey(prop), 1, 1, 1, true, true, true)
+  AttachEntityToEntity(object[entity], entity, isNpc and config["npc"].propIndex or config["player"].propIndex, pos.x, pos.y, pos.z, rot.x, rot.y, rot.z, true, true, false, true, 1, true)
 end
 
 function DeleteProp(entity)
@@ -126,7 +148,7 @@ end
 
 local keybind = lib.addKeybind({
   name = 'visualz_selldrug',
-  description = 'Sell drug',
+  description = 'Sælg stof keybind',
   defaultKey = 'E',
   onPressed = function(self)
     if not closestPed then
@@ -143,7 +165,7 @@ local keybind = lib.addKeybind({
 
 function HideTextUiIfNeeded()
   local isOpen, text = lib.isTextUIOpen()
-  if isOpen and text == keybind.currentKey .. " - Sell drugs" then
+  if isOpen and text == Config.TextUI() then
     lib.hideTextUI()
   end
 end
@@ -176,7 +198,7 @@ if Config.System == "textui" then
         if type(amountOfDrug) == "number" and amountOfDrug <= 0 then
           lib.notify({
             type = "info",
-            description = "Du har ikke mere " .. Config.Drugs[currentDrug].label .. " at sælge"
+            description = Config.Notify["RanOutOfDrugs"](currentDrug)
           })
           currentDrug = nil
           do break end
@@ -205,7 +227,7 @@ if Config.System == "textui" then
 
         closestPed = ped
         if not lib.isTextUIOpen() then
-          lib.showTextUI(keybind.currentKey .. " - Sell drugs", {
+          lib.showTextUI(Config.TextUI(), {
             icon = Config.SellIcon,
             position = 'left-center',
           })
@@ -218,7 +240,7 @@ else
     lib.hideTextUI()
   end
   exports.ox_target:addGlobalPed({
-    label = "Sell to npc",
+    label = Config.Target(),
     icon = "fas fa-dollar-sign",
     distance = 2.0,
     canInteract = function(entity)
@@ -252,7 +274,7 @@ function PickDrug(drug)
     currentDrug = nil
     lib.notify({
       type = "error",
-      description = "Stof salg er blevet slået fra"
+      description = Config.Notify["DrugSaleTurnedOff"]()
     })
     return
   end
@@ -265,19 +287,19 @@ function PickDrug(drug)
 end
 
 RegisterCommand("stof", function()
-  StofMenu()
+  DrugMenu()
 end)
 
 lib.addKeybind({
   name = 'Visualz_sellsystem:openMenu',
   description = 'Åben stof menu',
-  defaultKey = Config.OpenStofMenu,
+  defaultKey = Config.OpenDrugMenu,
   onPressed = function(self)
-    StofMenu()
+    DrugMenu()
   end,
 })
 
-function StofMenu()
+function DrugMenu()
   local options = {}
 
   local drugs = {}
@@ -344,4 +366,18 @@ end
 
 RegisterNetEvent("visualz_selldrugs:callPolice", function(coords)
   AlertPoliceBlips(coords)
+end)
+
+RegisterNetEvent("visualz_selldrugs:callPoliceAnimation", function(networkId)
+  if not NetworkDoesNetworkIdExist(networkId) then
+    return
+  end
+
+  local entity = NetworkGetEntityFromNetworkId(networkId)
+
+  if not DoesEntityExist(entity) then
+    return
+  end
+
+  CallPoliceAnimation(entity)
 end)

@@ -5,7 +5,7 @@ function TableLength(T)
 end
 
 function IsPedAbleToSell(ped)
-  if IsPedFatallyInjured(ped) or IsPedInAnyVehicle(ped, true) or IsPedSprinting(ped) then
+  if IsPedFatallyInjured(ped) or IsPedInAnyVehicle(ped, true) or IsPedSprinting(ped) or not IsPedHuman(ped) then
     return false
   end
 
