@@ -35,6 +35,9 @@ RegisterNetEvent("visualz_selldrugs:animation", function(networkId, type)
 
   Wait(Config.SellDuration / 2)
 
+  DeleteProp(cache.ped)
+  DeleteProp(entity)
+
   if config["npc"].enabled then
     AttachProp(entity, true, type, "first")
   end
