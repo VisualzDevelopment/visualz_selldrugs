@@ -24,7 +24,7 @@ RegisterNetEvent("visualz_selldrugs:animation", function(networkId, type)
   Wait(1000)
 
   if config["npc"].enabled then
-    AttachProp(entity, true, type, "first")
+    AttachProp(entity, true, type, "second")
     TaskPlayAnim(entity, config.dict, config.clip, 8.0, 8.0, Config.SellDuration / 2, 14, 0, false, false, false)
   end
 
@@ -36,7 +36,7 @@ RegisterNetEvent("visualz_selldrugs:animation", function(networkId, type)
   Wait(Config.SellDuration / 2)
 
   if config["npc"].enabled then
-    AttachProp(entity, true, type, "second")
+    AttachProp(entity, true, type, "first")
   end
 
   if config["player"].enabled then
