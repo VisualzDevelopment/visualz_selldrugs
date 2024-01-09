@@ -93,14 +93,14 @@ Config.Drugs = {
     policeChance = 100,
 
     basePrice = 100,
-    randomPrice = {
+    ["randomPrice"] = {
       enabled = true,
       minPrice = 100,
       maxPrice = 200,
     },
 
     baseAmount = 1,
-    randomAmount = {
+    ["randomAmount"] = {
       enabled = true,
       minAmount = 1,
       maxAmount = 5,
