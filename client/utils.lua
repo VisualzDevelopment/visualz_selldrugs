@@ -4,6 +4,17 @@ function TableLength(T)
   return count
 end
 
+function IsDrugTableEmpty(drugs)
+  local amount = 0
+  for k, v in pairs(drugs) do
+    amount = amount + tonumber(v)
+  end
+  if amount <= 0 then
+    return true
+  end
+  return false
+end
+
 function IsPedAbleToSell(ped)
   if IsPedFatallyInjured(ped) or IsPedInAnyVehicle(ped, true) or IsPedSprinting(ped) or not IsPedHuman(ped) then
     return false

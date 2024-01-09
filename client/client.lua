@@ -1,5 +1,5 @@
 local object = {}
-local closestPed = nil
+local lastKeybind = nil
 local currentDrug = nil
 
 RegisterNetEvent("visualz_selldrugs:animation", function(networkId, type)
@@ -60,7 +60,7 @@ RegisterNetEvent("visualz_selldrugs:animation", function(networkId, type)
   end
 end)
 
-RegisterCommand('propfix', function()
+RegisterCommand('visualz_fixprop', function()
   for k, v in pairs(GetGamePool('CObject')) do
     if IsEntityAttachedToEntity(PlayerPedId(), v) then
       SetEntityAsMissionEntity(v, true, true)
@@ -69,10 +69,6 @@ RegisterCommand('propfix', function()
     end
   end
 end)
-
---#
---# Util Functions
---#
 
 AlertPoliceBlips = function(coords)
   local transT = 250
@@ -129,10 +125,12 @@ function SellToPed(ped)
     SetPedFleeAttributes(ped, 15, true)
     return
   end
+
   lib.notify({
     type = sellResponse.type,
     description = sellResponse.description
   })
+
   SetPedConfigFlag(ped, 128, true)
   SetPedConfigFlag(ped, 183, true)
   SetPedFleeAttributes(ped, 15, true)
@@ -143,9 +141,6 @@ function AttachProp(entity, isNpc, type, firstOrSecond)
   local prop = isNpc and config["npc"][firstOrSecond .. "Prop"] or config["player"][firstOrSecond .. "Prop"]
   local pos = isNpc and config["npc"][firstOrSecond .. "Pos"] or config["player"][firstOrSecond .. "Pos"]
   local rot = isNpc and config["npc"][firstOrSecond .. "Rot"] or config["player"][firstOrSecond .. "Rot"]
-
-  --print(pos)
-  --print(pos.x, pos.y, pos.z)
 
   DeleteProp(entity)
   object[entity] = CreateObject(GetHashKey(prop), 1, 1, 1, true, true, true)
@@ -161,36 +156,24 @@ end
 local keybind = lib.addKeybind({
   name = 'visualz_selldrug',
   description = 'Sælg stof keybind',
-  defaultKey = 'E',
+  defaultKey = Config.SellKeybind,
   onPressed = function(self)
-    if not closestPed then
+    local coords = GetEntityCoords(cache.ped)
+    local ped = lib.getClosestPed(coords, Config.SellDistance)
+
+    if not ped or not IsPedAbleToSell(ped) or Entity(ped).state.hasSold then
       return
     end
 
-    if Entity(closestPed).state.hasSold then
-      return
-    end
-
-    SellToPed(closestPed)
+    SellToPed(ped)
   end,
 })
 
 function HideTextUiIfNeeded()
   local isOpen, text = lib.isTextUIOpen()
-  if isOpen and text == Config.TextUI() then
+  if isOpen and text == Config.TextUI(keybind.currentKey) then
     lib.hideTextUI()
   end
-end
-
-function IsDrugTableEmpty(drugs)
-  local amount = 0
-  for k, v in pairs(drugs) do
-    amount = amount + tonumber(v)
-  end
-  if amount <= 0 then
-    return true
-  end
-  return false
 end
 
 if Config.System == "textui" then
@@ -203,6 +186,7 @@ if Config.System == "textui" then
         Wait(300)
 
         if not currentDrug then
+          Wait(600)
           do break end
         end
 
@@ -217,29 +201,22 @@ if Config.System == "textui" then
         end
 
         local coords = GetEntityCoords(cache.ped)
-        local ped = lib.getClosestPed(coords, 2.0)
+        local ped = lib.getClosestPed(coords, Config.SellDistance)
 
-        if not ped then
-          closestPed = nil
+        if not ped or not IsPedAbleToSell(ped) or Entity(ped).state.hasSold then
           HideTextUiIfNeeded()
           do break end
         end
 
-        if not IsPedAbleToSell(ped) then
-          closestPed = nil
-          HideTextUiIfNeeded()
-          do break end
+        if lastKeybind ~= keybind.currentKey then
+          if lib.isTextUIOpen() then
+            lib.hideTextUI()
+          end
+          lastKeybind = keybind.currentKey
         end
 
-        if Entity(ped).state.hasSold then
-          closestPed = nil
-          HideTextUiIfNeeded()
-          do break end
-        end
-
-        closestPed = ped
         if not lib.isTextUIOpen() then
-          lib.showTextUI(Config.TextUI(), {
+          lib.showTextUI(Config.TextUI(keybind.currentKey), {
             icon = Config.SellIcon,
             position = 'left-center',
           })
@@ -254,7 +231,7 @@ else
   exports.ox_target:addGlobalPed({
     label = Config.Target(),
     icon = "fas fa-dollar-sign",
-    distance = 2.0,
+    distance = Config.SellDistance,
     canInteract = function(entity)
       if not currentDrug then
         return false
@@ -265,11 +242,7 @@ else
         return false
       end
 
-      if not IsPedAbleToSell(entity) then
-        return false
-      end
-
-      if Entity(entity).state.hasSold then
+      if not IsPedAbleToSell(entity) or Entity(entity).state.hasSold then
         return false
       end
 
@@ -304,8 +277,8 @@ end)
 
 lib.addKeybind({
   name = 'Visualz_sellsystem:openMenu',
-  description = 'Åben stof menu',
   defaultKey = Config.OpenDrugMenu,
+  description = 'Åben stof menu',
   onPressed = function(self)
     DrugMenu()
   end,
@@ -335,7 +308,6 @@ function DrugMenu()
       if v > 0 then
         table.insert(options, {
           title = Config.Drugs[k].label .. " (" .. v .. ")",
-          description = "Vælg " .. Config.Drugs[k].label .. " som stof",
           icon = Config.Drugs[k].icon,
           onSelect = function()
             PickDrug(k)
@@ -354,7 +326,6 @@ function DrugMenu()
     })
     table.insert(options, {
       title = Config.Drugs[drugs[1]].label .. " (" .. items .. ")",
-      description = "Vælg " .. Config.Drugs[drugs[1]].label .. " som stof",
       icon = Config.Drugs[drugs[1]].icon,
       onSelect = function()
         PickDrug(drugs[1])

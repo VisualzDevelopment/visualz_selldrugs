@@ -1,18 +1,22 @@
-Config = Config or {}
+Config = {}
 
 Config.System = "textui" -- textui or target
 
+-- Target label (only used if Config.System is set to target)
 Config.Target = function()
   return string.format("Sælg stof")
 end
 
-Config.TextUI = function()
-  return string.format(Config.SellKeybind .. " - Sælg stof")
+-- TextUI label (only used if Config.System is set to textui)
+Config.TextUI = function(keybind)
+  return string.format(keybind .. " - Sælg stof")
 end
 
+Config.SellDistance = 1.5        -- How close you need to be to sell drugs (in meters)
 Config.SellIcon = 'fas fa-pills' -- The icon to show in the textui or target
 Config.SellDuration = 2000       -- How long it takes to sell drugs (in milliseconds) (There is a buffer of 1250 milliseconds)
 Config.SellKeybind = 'E'         -- The keybind to sell drugs (only used if Config.System is set to textui)
+Config.SellCooldown = 2.5        -- How long the cooldown is between each sell (in seconds)
 
 Config.OpenStofMenu = ''         -- The keybind to open the stof menu (Leave blank to disable standard keybind)
 
@@ -133,6 +137,9 @@ Config.Notify = {
   end,
   ["RejectNotify"] = function(drug)
     return string.format("Personen ønsket ikke at købe noget")
+  end,
+  ["Cooldown"] = function(seconds)
+    return string.format("Du skal vente %s sekunder før du kan sælge igen", seconds)
   end,
   ["NotAbleToSell"] = function()
     return string.format("Du kan ikke sælge til denne person")

@@ -1,4 +1,4 @@
--- Client side function
+-- Animation when police is called
 function CallPoliceAnimation(entity)
   local dict = "cellphone@"
   lib.requestAnimDict(dict)

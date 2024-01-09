@@ -1,4 +1,5 @@
----@diagnostic disable: trailing-space
+local SellCooldown = {}
+
 lib.callback.register("visualz_selldrugs:sellDrugs", function(source, networkId, drug, zone)
   local xPlayer = ESX.GetPlayerFromId(source)
 
@@ -12,13 +13,18 @@ lib.callback.register("visualz_selldrugs:sellDrugs", function(source, networkId,
     return { type = "error", description = Config.Notify["NotAbleToSell"]() }
   end
 
+  if SellCooldown[source] and os.time() - SellCooldown[source] < Config.SellCooldown then
+    local timeLeft = Config.SellCooldown - (os.time() - SellCooldown[source])
+    return { type = "error", description = Config.Notify["Cooldown"](timeLeft) }
+  end
+
   if Entity(entity).state.hasSold then
     return { type = "error", description = Config.Notify["AlreadySoldToThisNPC"]() }
   end
 
   Entity(entity).state:set("hasSold", true, true)
 
-  if CheckDistance(entity, xPlayer) > 3.0 then
+  if CheckDistance(entity, xPlayer) > Config.SellDistance + 1.0 then
     return { type = "error", description = Config.Notify["TooFarAwayToSell"]() }
   end
 
@@ -45,7 +51,10 @@ lib.callback.register("visualz_selldrugs:sellDrugs", function(source, networkId,
     end
   end
 
+  SellCooldown[source] = os.time()
+
   TriggerClientEvent("visualz_selldrugs:animation", source, networkId, "Accepted")
+
   Wait(Config.SellDuration + 1000)
 
   if CheckDistance(entity, xPlayer) > 3.0 then
